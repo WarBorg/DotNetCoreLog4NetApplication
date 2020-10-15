@@ -2,34 +2,31 @@
 using log4net.Config;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 
 namespace DotNetCoreLog4NetApplication.ConsoleUI
 {
     class Program
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()
-                                                                          .DeclaringType);
-
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            var connectionStringBuilder = new SqliteConnectionStringBuilder();
+            // TODO: Read from connecionstrings.json
+            var connectionString = "Data Source=\"./log4net.db;Version=3;\"";
 
-            //Use DB in project directory.  If it does not exist, create it:
-            connectionStringBuilder.DataSource = "./log4net.db";
-
-            using (var connection = new SqliteConnection(connectionStringBuilder.ConnectionString))
+            using (var connection = new SqliteConnection(connectionString))
             {
                 connection.Open();
 
                 //Create a table (drop if already exists first):
 
-                var delTableCmd = connection.CreateCommand();
+                await using var delTableCmd = connection.CreateCommand();
                 delTableCmd.CommandText = "DROP TABLE IF EXISTS Log";
                 delTableCmd.ExecuteNonQuery();
 
-                var createTableCmd = connection.CreateCommand();
+                await using var createTableCmd = connection.CreateCommand();
                 createTableCmd.CommandText = "CREATE TABLE Log (" +
                                              "LogId INTEGER PRIMARY KEY," +
                                              "Date DATETIME NOT NULL," +
@@ -45,6 +42,7 @@ namespace DotNetCoreLog4NetApplication.ConsoleUI
             XmlConfigurator.Configure(logRepository, new FileInfo("log4net.config"));
 
             Console.WriteLine("Hello world!");
+            var log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
             // Log some things
             log.Info("Hello logging world!");
@@ -52,6 +50,21 @@ namespace DotNetCoreLog4NetApplication.ConsoleUI
             log.Warn("Warn!");
             log.Debug("Debug!!");
 
+            using (var connection = new SqliteConnection(connectionString))
+            {
+                connection.Open();
+
+                await using var selectCmd = connection.CreateCommand();
+                selectCmd.CommandText = "select * from Log";
+                await using var reader = await selectCmd.ExecuteReaderAsync();
+                Console.WriteLine(string.Join("\t", Enumerable.Range(0, reader.FieldCount).Select(i => reader.GetName(i))));
+                while (await reader.ReadAsync())
+                {
+                    Console.WriteLine(string.Join("\t", Enumerable.Range(0, reader.FieldCount).Select(i => reader.GetString(i))));
+                }
+            }
+
+            Console.WriteLine("Press Enter to continue");
             Console.ReadLine();
         }
     }
