@@ -8,7 +8,7 @@
   <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.11" />
     <PackageReference Include="MicroKnights.Log4NetAdoNetAppender" Version="2.2.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="3.1.8" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="3.1.9" />
   </ItemGroup>
   <ItemGroup>
     <None Update="connectionstrings.json">
