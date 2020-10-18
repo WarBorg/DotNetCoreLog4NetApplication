@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.11" />
     <PackageReference Include="MicroKnights.Log4NetAdoNetAppender" Version="2.2.0" />
+    <PackageReference Include="MicroKnights.Log4NetHelper" Version="2.2.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="3.1.9" />
   </ItemGroup>
   <ItemGroup>
