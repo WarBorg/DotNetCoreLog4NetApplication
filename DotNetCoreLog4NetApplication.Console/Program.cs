@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using log4net.Util;
+using MicroKnights.Log4NetHelper;
 using Microsoft.Data.Sqlite;
 
 namespace DotNetCoreLog4NetApplication.ConsoleUI
@@ -38,8 +40,19 @@ namespace DotNetCoreLog4NetApplication.ConsoleUI
             }
 
             // Load configuration
+            var log4netConfigFilename = "log4net.config";
+            if( File.Exists(log4netConfigFilename) == false ) throw new FileNotFoundException($"{log4netConfigFilename} not found",log4netConfigFilename);
+#if DEBUG
+            InternalDebugHelper.EnableInternalDebug(delegate(object source, LogReceivedEventArgs eventArgs)
+            {
+                Console.WriteLine(eventArgs.LogLog.Message);
+                if (eventArgs.LogLog.Exception != null)
+                    Console.WriteLine(eventArgs.LogLog.Exception.StackTrace);
+            });
+#endif
+
             var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
-            XmlConfigurator.Configure(logRepository, new FileInfo("log4net.config"));
+            XmlConfigurator.Configure(logRepository, new FileInfo(log4netConfigFilename));
 
             Console.WriteLine("Hello world!");
             var log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
