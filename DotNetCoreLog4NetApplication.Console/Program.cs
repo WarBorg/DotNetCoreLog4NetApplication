@@ -16,9 +16,10 @@ namespace DotNetCoreLog4NetApplication.ConsoleUI
         static async Task Main(string[] args)
         {
             // TODO: Read from connecionstrings.json
-            var connectionString = "Data Source=\"./log4net.db;Version=3;\"";
+            var connectionString = "Data Source=\"./log4net.db\"";
 
-            using (var connection = new SqliteConnection(connectionString))
+            // Create table
+            /*using (var connection = new SqliteConnection(connectionString))
             {
                 connection.Open();
 
@@ -37,13 +38,18 @@ namespace DotNetCoreLog4NetApplication.ConsoleUI
                                              "Message TEXT DEFAULT NULL" +
                                              "); ";
                 createTableCmd.ExecuteNonQuery();
-            }
+            }*/
 
             // Load configuration
-            var log4netConfigFilename = "log4net.config";
-            if( File.Exists(log4netConfigFilename) == false ) throw new FileNotFoundException($"{log4netConfigFilename} not found",log4netConfigFilename);
+            const string Log4netConfigFilename = "log4net.config";
+
+            if (File.Exists(Log4netConfigFilename) == false)
+            {
+                throw new FileNotFoundException($"{Log4netConfigFilename} not found", Log4netConfigFilename);
+            }
+
 #if DEBUG
-            InternalDebugHelper.EnableInternalDebug(delegate(object source, LogReceivedEventArgs eventArgs)
+            InternalDebugHelper.EnableInternalDebug(delegate (object source, LogReceivedEventArgs eventArgs)
             {
                 Console.WriteLine(eventArgs.LogLog.Message);
                 if (eventArgs.LogLog.Exception != null)
@@ -52,9 +58,10 @@ namespace DotNetCoreLog4NetApplication.ConsoleUI
 #endif
 
             var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
-            XmlConfigurator.Configure(logRepository, new FileInfo(log4netConfigFilename));
+            XmlConfigurator.Configure(logRepository, new FileInfo(Log4netConfigFilename));
 
             Console.WriteLine("Hello world!");
+
             var log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
             // Log some things
@@ -63,22 +70,33 @@ namespace DotNetCoreLog4NetApplication.ConsoleUI
             log.Warn("Warn!");
             log.Debug("Debug!!");
 
-            using (var connection = new SqliteConnection(connectionString))
-            {
-                connection.Open();
-
-                await using var selectCmd = connection.CreateCommand();
-                selectCmd.CommandText = "select * from Log";
-                await using var reader = await selectCmd.ExecuteReaderAsync();
-                Console.WriteLine(string.Join("\t", Enumerable.Range(0, reader.FieldCount).Select(i => reader.GetName(i))));
-                while (await reader.ReadAsync())
-                {
-                    Console.WriteLine(string.Join("\t", Enumerable.Range(0, reader.FieldCount).Select(i => reader.GetString(i))));
-                }
-            }
+            // Show logged data from the database
+            await ShowLogDataFromDatabaseWith(connectionString);
 
             Console.WriteLine("Press Enter to continue");
             Console.ReadLine();
+        }
+
+        private static async Task ShowLogDataFromDatabaseWith(string connectionString)
+        {
+            using var connection = new SqliteConnection(connectionString);
+
+            connection.Open();
+
+            await using var selectCmd = connection.CreateCommand();
+
+            selectCmd.CommandText = "select * from Log";
+
+            await using var reader = await selectCmd.ExecuteReaderAsync();
+
+            Console.WriteLine(string.Join("\t", Enumerable.Range(0, reader.FieldCount)
+                                                          .Select(i => reader.GetName(i))));
+
+            while (await reader.ReadAsync())
+            {
+                Console.WriteLine(string.Join("\t", Enumerable.Range(0, reader.FieldCount)
+                                                              .Select(i => reader.GetString(i))));
+            }
         }
     }
 }
